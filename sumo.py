@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import pyglet
+import urllib2
 import pymunk as pm
 import math, sys, random
 
@@ -21,6 +22,18 @@ class Player(object):
         self.score = 0
 
         self._setup()
+
+    def setImage(self, image):
+        image = urllib2.urlopen(image)
+        pygimage = pyglet.image.load('', file=image)
+        image.close()
+        image = self.image = pyglet.sprite.Sprite(pygimage)
+        if image.width > image.height:
+            image.scale = 50.0/image.width
+        else:
+            image.scale = 50.0/image.height
+        image.x = -image.width/2
+        image.y = -image.height/2
 
     def _setup(self):
         direction = self.direction
@@ -65,10 +78,13 @@ class Player(object):
         # Draw head
         head = self.head
         body = head.body
-        x,y = cv = body.position + head.offset.rotated(body.angle)
         rad = head.radius
 
         GL.glPushMatrix()
+        x,y = body.position
+        GL.glTranslatef(x, y, 0.0)
+        GL.glRotatef(body.angle*(180/math.pi), 0, 0, 1)
+        x,y = head.offset
         GL.glTranslatef(x, y, 0.0)
         GL.glBegin(GL.GL_TRIANGLE_FAN)
         radius = head.radius
@@ -77,6 +93,8 @@ class Player(object):
             rad = ((i+1)/8.0)*math.pi
             GL.glVertex2f(math.cos(rad)*radius,math.sin(rad)*radius);
         GL.glEnd()
+        if self.image:
+            self.image.draw()
         GL.glPopMatrix()
 
         # Draw legs
@@ -256,5 +274,14 @@ def update(dt):
         space.step(dt/10.0)
 
 if __name__ == '__main__':
+    import sys
+
+    if len(sys.argv) == 2:
+        P1.setImage(sys.argv[1])
+        P2.setImage(sys.argv[1])
+    elif len(sys.argv) == 3:
+        P1.setImage(sys.argv[1])
+        P2.setImage(sys.argv[2])
+
     pyglet.clock.schedule_interval(update, 1/60.0) # update at 60Hz
     pyglet.app.run()
