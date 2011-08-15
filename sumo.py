@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import pygame
-from pygame.locals import *
-from pygame.color import *
+import pyglet
 import pymunk as pm
 import math, sys, random
 
 LEG_LEN = 35
-MUSCLE_STRENGTH = 4000000
+MUSCLE_STRENGTH = 4500000
 MUSCLE_STIFFNESS = 20000
+
+GL = pyglet.gl
+KEY = pyglet.window.key
 
 class Player(object):
     def __init__(self, world, shared_body, direction):
@@ -59,169 +60,194 @@ class Player(object):
             obj.angular_velocity = 0
             obj.reset_forces()
 
-    def draw(self, screen):
+    def draw(self):
+        GL.glColor3f(1.0, 1.0, 1.0)
+        # Draw head
         head = self.head
         body = head.body
-        cv = body.position + head.offset.rotated(body.angle)
-        c = to_pygame(cv)
-        pygame.draw.circle(screen, THECOLORS["black"], c, int(head.radius))
+        x,y = cv = body.position + head.offset.rotated(body.angle)
+        rad = head.radius
 
+        GL.glPushMatrix()
+        GL.glTranslatef(x, y, 0.0)
+        GL.glBegin(GL.GL_TRIANGLE_FAN)
+        radius = head.radius
+        GL.glVertex2f(0,0)
+        for i in xrange(17):
+            rad = ((i+1)/8.0)*math.pi
+            GL.glVertex2f(math.cos(rad)*radius,math.sin(rad)*radius);
+        GL.glEnd()
+        GL.glPopMatrix()
+
+        # Draw legs
         for line in self.segments:
             body = line.body
-            pv1 = body.position + line.a.rotated(body.angle)
-            pv2 = body.position + line.b.rotated(body.angle)
-            pt1 = to_pygame(pv1)
-            pt2 = to_pygame(pv2)
-            pygame.draw.lines(screen, THECOLORS["black"], False, [pt1,pt2], 4)
+            GL.glPushMatrix()
+            x,y = body.position
+            GL.glTranslatef(x, y, 0.0)
+            GL.glRotatef(body.angle*(180/math.pi), 0, 0, 1.0)
 
-def to_pygame(p):
-    """Small hack to convert pymunk to pygame coordinates"""
-    return int(p.x), int(-p.y+600)
+            GL.glBegin(GL.GL_LINES)
+            GL.glVertex2f(*line.a)
+            GL.glVertex2f(*line.b)
+            GL.glEnd()
+            GL.glPopMatrix()
 
-def main():
-    pygame.init()
-    screen = pygame.display.set_mode((600, 600))
-    pygame.display.set_caption("Fight!")
-    clock = pygame.time.Clock()
-    running = True
+class Ground(object):
+    def __init__(self, space):
+        self.body = body = pm.Body(pm.inf, pm.inf)
+        body.position = (300,40)
 
-    ### Physics stuff
-    pm.init_pymunk()
-    space = pm.Space()
-    space.gravity = (0.0, -900.0)
+        self.ground = ground = pm.Segment(body, (-1000,0), (1000,0), 5.0)
+        ground.friction = 0.6
+        ground.color = (1.0, 1.0, 1.0)
+        self.mat = mat = pm.Segment(body, (-200,5), (200,5), 5.0)
+        mat.friction = 0.6
+        mat.color = (1.0, 0.0, 0.0)
+        space.add(ground, mat)
 
-    space.resize_static_hash()
-    space.resize_active_hash()
+    def draw(self):
+        for line in (self.mat, self.ground):
+            body = line.body
+            GL.glPushMatrix()
+            x,y = body.position
+            GL.glTranslatef(x, y, 0.0)
+            GL.glRotatef(body.angle*(180/math.pi), 0, 0, 1.0)
+            GL.glColor3f(*line.color)
 
-    ### static stuff
-    ground_body = pm.Body(pm.inf, pm.inf)
-    ground_body.position = (300,40)
+            GL.glBegin(GL.GL_LINES)
+            GL.glVertex2f(*line.a)
+            GL.glVertex2f(*line.b)
+            GL.glEnd()
+            GL.glPopMatrix()
 
-    ground = pm.Segment(ground_body, (-1000,0), (1000,0), 5.0)
-    ground.friction = 0.6
-    ground.color = THECOLORS['black']
-    mat = pm.Segment(ground_body, (-200,5), (200,5), 5.0)
-    mat.friction = 0.6
-    mat.color = THECOLORS['red']
-    space.add(ground, mat)
 
-    ### The moving L shape
-    l_shoulder = (-50, 30)
-    l_hip = (-50,0)
-    r_shoulder = (50, 30)
-    r_hip = (50,0)
+### Physics stuff
+pm.init_pymunk()
+space = pm.Space()
+space.gravity = (0.0, -900.0)
 
-    body = pm.Body(10,10000)
+space.resize_static_hash()
+space.resize_active_hash()
 
-    lines = [pm.Segment(body, l_shoulder, l_hip, 5.0) 
-            ,pm.Segment(body, r_shoulder, r_hip, 5.0)
-            ,pm.Segment(body, r_shoulder, l_hip, 5.0)
-            ,pm.Segment(body, l_shoulder, r_hip, 5.0)
-    ]
+GROUND = Ground(space)
 
-    space.add(body, lines)
-    body.position = 300,300
+### The moving L shape
+l_shoulder = (-50, 30)
+l_hip = (-50,0)
+r_shoulder = (50, 30)
+r_hip = (50,0)
 
-    P1 = Player(space, body, -1.0)
-    P2 = Player(space, body, 1.0)
+body = pm.Body(10,10000)
 
-    def reset():
-        body.position = (300,300)
-        body.angle = 0
-        body.velocity = (0,0)
-        body.angular_velocity = 0
-        body.reset_forces()
-        P1.reset()
-        P2.reset()
+lines = [pm.Segment(body, l_shoulder, l_hip, 5.0) 
+        ,pm.Segment(body, r_shoulder, r_hip, 5.0)
+        ,pm.Segment(body, r_shoulder, l_hip, 5.0)
+        ,pm.Segment(body, l_shoulder, r_hip, 5.0)
+]
 
-    def kill(player):
-        if player is P1:
-            P2.score += 1
-        else:
-            P1.score += 1
-        print "Scores: Left %s, right %s" % (P1.score, P2.score)
-        reset()
+space.add(body, lines)
+body.position = 300,300
 
-    def onCollision(space, arbiter):
-        shapes = arbiter.shapes
-        if P1.head in shapes:
-            kill(P1)
-        elif P2.head in shapes:
-            kill(P2)
-        elif ground in shapes:
-            if P1.head in shapes or P1.foot in shapes:
-                kill(P1)
-            elif P2.head in shapes or P2.foot in shapes:
-                kill(P2)
+P1 = Player(space, body, -1.0)
+P2 = Player(space, body, 1.0)
 
-        return True
-    space.add_collision_handler(0, 0, onCollision, None, None, None) 
+def reset():
+    body.position = (300,300)
+    body.angle = 0
+    body.velocity = (0,0)
+    body.angular_velocity = 0
+    body.reset_forces()
+    P1.reset()
+    P2.reset()
 
+def kill(player):
+    if player is P1:
+        P2.score += 1
+    else:
+        P1.score += 1
+    print "Scores: Left %s, right %s" % (P1.score, P2.score)
     reset()
 
-    STRETCH_RANGE = math.pi/5
-    ANGLE_RANGE = math.pi/5
-    KEYS = {
-        K_w: (P1, STRETCH_RANGE, 0),
-        K_s: (P1, -STRETCH_RANGE, 0),
-        K_d: (P1, 0, ANGLE_RANGE),
-        K_a: (P1, 0, -ANGLE_RANGE),
+def onCollision(space, arbiter):
+    shapes = arbiter.shapes
+    if P1.head in shapes:
+        kill(P1)
+    elif P2.head in shapes:
+        kill(P2)
+    elif GROUND.ground in shapes:
+        if P1.head in shapes or P1.foot in shapes:
+            kill(P1)
+        elif P2.head in shapes or P2.foot in shapes:
+            kill(P2)
 
-        K_UP: (P2, STRETCH_RANGE, 0),
-        K_DOWN: (P2, -STRETCH_RANGE, 0),
-        K_LEFT: (P2, 0, ANGLE_RANGE),
-        K_RIGHT: (P2, 0, -ANGLE_RANGE),
-    }
+    return True
+space.add_collision_handler(0, 0, onCollision, None, None, None) 
 
-    while running:
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                running = False
-            elif event.type == KEYDOWN and event.key == K_ESCAPE:
-                running = False
+reset()
 
-            elif event.type == KEYDOWN and event.key in KEYS:
-                player, stretch, angle = KEYS[event.key]
-                player.stretch += stretch
-                player.angle += angle
-                player.updateMuscles()
+STRETCH_RANGE = math.pi/5
+ANGLE_RANGE = math.pi/5
+KEYS = {
+    KEY.W: (P1, STRETCH_RANGE, 0),
+    KEY.S: (P1, -STRETCH_RANGE, 0),
+    KEY.D: (P1, 0, ANGLE_RANGE),
+    KEY.A: (P1, 0, -ANGLE_RANGE),
 
-            elif event.type == KEYUP and event.key in KEYS:
-                player, stretch, angle = KEYS[event.key]
-                player.stretch -= stretch
-                player.angle -= angle
-                player.updateMuscles()
+    KEY.UP: (P2, STRETCH_RANGE, 0),
+    KEY.DOWN: (P2, -STRETCH_RANGE, 0),
+    KEY.LEFT: (P2, 0, ANGLE_RANGE),
+    KEY.RIGHT: (P2, 0, -ANGLE_RANGE),
+}
 
-        ### Clear screen
-        screen.fill(THECOLORS["white"])
 
-        ### Draw stuff
-        for line in lines:
-            body = line.body
-            pv1 = body.position + line.a.rotated(body.angle)
-            pv2 = body.position + line.b.rotated(body.angle)
-            pt1 = to_pygame(pv1)
-            pt2 = to_pygame(pv2)
-            pygame.draw.lines(screen, THECOLORS["black"], False, [pt1,pt2], 4)
+window = pyglet.window.Window()
 
-        P1.draw(screen)
-        P2.draw(screen)
+@window.event
+def on_key_press(symbol, modifiers):
+    if symbol == KEY.ESCAPE:
+        pyglet.app.exit()
+    elif symbol in KEYS:
+        player, stretch, angle = KEYS[symbol]
+        player.stretch += stretch
+        player.angle += angle
+        player.updateMuscles()
 
-        for line in (ground, mat):
-            offset = line.body.position
-            a = to_pygame(offset+line.a)
-            b = to_pygame(offset+line.b)
-            pygame.draw.lines(screen, line.color, False, [a, b], 4)
+@window.event
+def on_key_release(symbol, modifiers):
+    if symbol in KEYS:
+        player, stretch, angle = KEYS[symbol]
+        player.stretch -= stretch
+        player.angle -= angle
+        player.updateMuscles()
 
-        ### Update physics
-        dt = 1.0/50.0/10.0
-        for x in range(10):
-            space.step(dt)
+@window.event
+def on_draw():
+    window.clear()
+    GL.glLineWidth(3)
+    GL.glEnable(GL.GL_LINE_SMOOTH)
+    GROUND.draw()
 
-        ### Flip screen
-        pygame.display.flip()
-        clock.tick(50)
+    for line in lines:
+        body = line.body
+        GL.glPushMatrix()
+        x,y = body.position
+        GL.glTranslatef(x, y, 0.0)
+        GL.glRotatef(body.angle*(180/math.pi), 0, 0, 1.0)
 
-        
+        GL.glBegin(GL.GL_LINES)
+        GL.glVertex2f(*line.a)
+        GL.glVertex2f(*line.b)
+        GL.glEnd()
+        GL.glPopMatrix()
+
+    P1.draw()
+    P2.draw()
+
+def update(dt):
+    for x in xrange(10):
+        space.step(dt/10.0)
+
 if __name__ == '__main__':
-    sys.exit(main())
+    pyglet.clock.schedule_interval(update, 1/60.0) # update at 60Hz
+    pyglet.app.run()
