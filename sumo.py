@@ -7,16 +7,6 @@ import pymunk as pm
 import math, sys, random
 X,Y,Z = 0,1,2 # Easy indexing
 
-class Score(object):
-    def __init__(self):
-        self.i = 0
-
-    def inc(self):
-        self.i += 1
-
-    def __str__(self):
-        return str(self.i)
-
 class Player(object):
     def __init__(self, thigh_muscle, calf_muscle, direction):
         self.thigh_muscle = thigh_muscle
@@ -24,13 +14,11 @@ class Player(object):
         self.direction = direction
         self.stretch = (math.pi/4)
         self.angle = 0
+        self.score = 0
 
     def updateMuscles(self):
         self.thigh_muscle.rest_angle = (self.angle + self.stretch) * self.direction
         self.calf_muscle.rest_angle = (-self.stretch*2) * self.direction
-
-LEFT_SCORE = Score()
-RIGHT_SCORE = Score()
 
 def to_pygame(p):
     """Small hack to convert pymunk to pygame coordinates"""
@@ -122,26 +110,25 @@ def main():
             obj.angular_velocity = 0
             obj.reset_forces()
 
+    def kill(player):
+        if player is P1:
+            P2.score += 1
+        else:
+            P1.score += 1
+        print "Scores: Left %s, right %s" % (P1.score, P2.score)
+        reset()
+
     def onCollision(space, arbiter):
-        dead = False
         shapes = arbiter.shapes
         if left_head in shapes:
-            RIGHT_SCORE.inc()
-            dead = True 
+            kill(P1)
         elif right_head in shapes:
-            LEFT_SCORE.inc()
-            dead = True
+            kill(P2)
         elif ground in shapes:
             if left_head in shapes or left_foot in shapes:
-                RIGHT_SCORE.inc()
-                dead = True
+                kill(P1)
             elif right_head in shapes or right_foot in shapes:
-                LEFT_SCORE.inc()
-                dead = True
-        if dead:
-            print "Scores: Left %s, right %s" % (LEFT_SCORE, RIGHT_SCORE)
-            reset()
-            return True
+                kill(P2)
 
         return True
     space.add_collision_handler(0, 0, onCollision, None, None, None) 
@@ -160,21 +147,21 @@ def main():
     right_calf_muscle = pm.DampedRotarySpring(right_thigh, right_calf, -(math.pi/2), MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
     space.add(right_thigh_muscle, right_calf_muscle)
 
-    p1 = Player(left_thigh_muscle, left_calf_muscle, -1.0)
-    p2 = Player(right_thigh_muscle, right_calf_muscle, 1.0)
+    P1 = Player(left_thigh_muscle, left_calf_muscle, -1.0)
+    P2 = Player(right_thigh_muscle, right_calf_muscle, 1.0)
 
     STRETCH_RANGE = math.pi/5
     ANGLE_RANGE = math.pi/5
     KEYS = {
-        K_w: (p1, STRETCH_RANGE, 0),
-        K_s: (p1, -STRETCH_RANGE, 0),
-        K_d: (p1, 0, ANGLE_RANGE),
-        K_a: (p1, 0, -ANGLE_RANGE),
+        K_w: (P1, STRETCH_RANGE, 0),
+        K_s: (P1, -STRETCH_RANGE, 0),
+        K_d: (P1, 0, ANGLE_RANGE),
+        K_a: (P1, 0, -ANGLE_RANGE),
 
-        K_UP: (p2, STRETCH_RANGE, 0),
-        K_DOWN: (p2, -STRETCH_RANGE, 0),
-        K_LEFT: (p2, 0, ANGLE_RANGE),
-        K_RIGHT: (p2, 0, -ANGLE_RANGE),
+        K_UP: (P2, STRETCH_RANGE, 0),
+        K_DOWN: (P2, -STRETCH_RANGE, 0),
+        K_LEFT: (P2, 0, ANGLE_RANGE),
+        K_RIGHT: (P2, 0, -ANGLE_RANGE),
     }
 
     while running:
