@@ -17,6 +17,18 @@ class Score(object):
     def __str__(self):
         return str(self.i)
 
+class Player(object):
+    def __init__(self, thigh_muscle, calf_muscle, direction):
+        self.thigh_muscle = thigh_muscle
+        self.calf_muscle = calf_muscle
+        self.direction = direction
+        self.stretch = (math.pi/4)
+        self.angle = 0
+
+    def updateMuscles(self):
+        self.thigh_muscle.rest_angle = (self.angle + self.stretch) * self.direction
+        self.calf_muscle.rest_angle = (-self.stretch*2) * self.direction
+
 LEFT_SCORE = Score()
 RIGHT_SCORE = Score()
 
@@ -27,7 +39,7 @@ def to_pygame(p):
 def main():
     pygame.init()
     screen = pygame.display.set_mode((600, 600))
-    pygame.display.set_caption("Joints. Just wait and the L will tip over")
+    pygame.display.set_caption("Fight!")
     clock = pygame.time.Clock()
     running = True
 
@@ -95,7 +107,7 @@ def main():
 
     space.add(body, lines, left_head, right_head, feet, left_thigh, left_calf, right_thigh, right_calf)
 
-    MUSCLE_STRENGTH = 6000000
+    MUSCLE_STRENGTH = 4000000
     MUSCLE_STIFFNESS = 10000
 
     def reset():
@@ -123,14 +135,14 @@ def main():
             if left_head in shapes or left_foot in shapes:
                 RIGHT_SCORE.inc()
                 dead = True
-            elif right_head in shapes or left_foot in shapes:
+            elif right_head in shapes or right_foot in shapes:
                 LEFT_SCORE.inc()
                 dead = True
         if dead:
-            print "Left has %s, right has %s" % (LEFT_SCORE, RIGHT_SCORE)
+            print "Scores: Left %s, right %s" % (LEFT_SCORE, RIGHT_SCORE)
             reset()
             return True
-            
+
         return True
     space.add_collision_handler(0, 0, onCollision, None, None, None) 
 
@@ -148,6 +160,23 @@ def main():
     right_calf_muscle = pm.DampedRotarySpring(right_thigh, right_calf, -(math.pi/2), MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
     space.add(right_thigh_muscle, right_calf_muscle)
 
+    p1 = Player(left_thigh_muscle, left_calf_muscle, -1.0)
+    p2 = Player(right_thigh_muscle, right_calf_muscle, 1.0)
+
+    STRETCH_RANGE = math.pi/5
+    ANGLE_RANGE = math.pi/5
+    KEYS = {
+        K_w: (p1, STRETCH_RANGE, 0),
+        K_s: (p1, -STRETCH_RANGE, 0),
+        K_d: (p1, 0, ANGLE_RANGE),
+        K_a: (p1, 0, -ANGLE_RANGE),
+
+        K_UP: (p2, STRETCH_RANGE, 0),
+        K_DOWN: (p2, -STRETCH_RANGE, 0),
+        K_LEFT: (p2, 0, ANGLE_RANGE),
+        K_RIGHT: (p2, 0, -ANGLE_RANGE),
+    }
+
     while running:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -155,25 +184,17 @@ def main():
             elif event.type == KEYDOWN and event.key == K_ESCAPE:
                 running = False
 
-            elif event.type == KEYDOWN and event.key == K_DOWN:
-                right_thigh_muscle.rest_angle = (math.pi/8)
-                right_calf_muscle.rest_angle = -(math.pi/4)
-            elif event.type == KEYUP and event.key in (K_UP, K_DOWN):
-                right_thigh_muscle.rest_angle = (math.pi/4)
-                right_calf_muscle.rest_angle = -(math.pi/2)
-            elif event.type == KEYDOWN and event.key == K_UP:
-                right_thigh_muscle.rest_angle = (math.pi/2)
-                right_calf_muscle.rest_angle = -(math.pi)
+            elif event.type == KEYDOWN and event.key in KEYS:
+                player, stretch, angle = KEYS[event.key]
+                player.stretch += stretch
+                player.angle += angle
+                player.updateMuscles()
 
-            elif event.type == KEYDOWN and event.key == K_s:
-                left_thigh_muscle.rest_angle = -(math.pi/8)
-                left_calf_muscle.rest_angle = (math.pi/4)
-            elif event.type == KEYUP and event.key in (K_s, K_w):
-                left_thigh_muscle.rest_angle = -(math.pi/4)
-                left_calf_muscle.rest_angle = (math.pi/2)
-            elif event.type == KEYDOWN and event.key == K_w:
-                left_thigh_muscle.rest_angle = -(math.pi/2)
-                left_calf_muscle.rest_angle = (math.pi)
+            elif event.type == KEYUP and event.key in KEYS:
+                player, stretch, angle = KEYS[event.key]
+                player.stretch -= stretch
+                player.angle -= angle
+                player.updateMuscles()
 
         ### Clear screen
         screen.fill(THECOLORS["white"])
@@ -183,9 +204,9 @@ def main():
             body = line.body
             pv1 = body.position + line.a.rotated(body.angle)
             pv2 = body.position + line.b.rotated(body.angle)
-            p1 = to_pygame(pv1)
-            p2 = to_pygame(pv2)
-            pygame.draw.lines(screen, THECOLORS["black"], False, [p1,p2], 4)
+            pt1 = to_pygame(pv1)
+            pt2 = to_pygame(pv2)
+            pygame.draw.lines(screen, THECOLORS["black"], False, [pt1,pt2], 4)
 
         for head in (left_head, right_head):
             body = head.body
