@@ -5,7 +5,7 @@ import pymunk as pm
 import math, sys, random
 
 LEG_LEN = 35
-MUSCLE_STRENGTH = 4500000
+MUSCLE_STRENGTH = 6000000
 MUSCLE_STIFFNESS = 20000
 
 GL = pyglet.gl
