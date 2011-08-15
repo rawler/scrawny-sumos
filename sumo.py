@@ -200,8 +200,16 @@ KEYS = {
     KEY.RIGHT: (P2, 0, -ANGLE_RANGE),
 }
 
+config = pyglet.gl.Config(alpha_size=8)
+window = pyglet.window.Window(config=config)
 
-window = pyglet.window.Window()
+GL.glShadeModel(GL.GL_SMOOTH);
+GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
+GL.glEnable(GL.GL_BLEND);
+GL.glEnable(GL.GL_LINE_SMOOTH)
+GL.glEnable(GL.GL_POLYGON_SMOOTH)
+GL.glHint(GL.GL_LINE_SMOOTH_HINT, GL.GL_NICEST)
+GL.glHint(GL.GL_POLYGON_SMOOTH_HINT, GL.GL_NICEST)
 
 @window.event
 def on_key_press(symbol, modifiers):
@@ -225,7 +233,6 @@ def on_key_release(symbol, modifiers):
 def on_draw():
     window.clear()
     GL.glLineWidth(3)
-    GL.glEnable(GL.GL_LINE_SMOOTH)
     GROUND.draw()
 
     for line in lines:
