@@ -38,7 +38,9 @@ class Player(object):
 
     def _setup(self):
         direction = self.direction
-        self.head = pm.Circle(self.shared_body, 25, (50*direction, 55))
+
+        self.head_body = pm.Body(2, 10000)
+        self.head = pm.Circle(self.head_body, 25, (0,0))
 
         self.thigh = pm.Body(10, 10000)
         self.calf = pm.Body(10, 10000)
@@ -50,15 +52,17 @@ class Player(object):
 
         self.reset()
 
+        neck_joint = pm.PinJoint(self.shared_body, self.head_body, (50*direction,30), (0,-30))
         hip_joint = pm.PinJoint(self.shared_body, self.thigh, (50*direction,0), (0,0))
         knee_joint = pm.PinJoint(self.thigh, self.calf, (0,-LEG_LEN), (0,0))
 
+        self.neck_muscle = pm.DampedRotarySpring(self.shared_body, self.head_body, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS/10)
         self.thigh_muscle = pm.DampedRotarySpring(self.shared_body, self.thigh, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
         self.calf_muscle = pm.DampedRotarySpring(self.thigh, self.calf, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
 
         self.foot = pm.Circle(self.calf, 1, (0,-LEG_LEN))
         self.foot.friction = 0.6
-        self.world.add(self.head, self.thigh, self.calf, self.segments, hip_joint, knee_joint, self.thigh_muscle, self.calf_muscle, self.foot)
+        self.world.add(self.head_body, self.head, neck_joint, self.neck_muscle, self.thigh, self.calf, self.segments, hip_joint, knee_joint, self.thigh_muscle, self.calf_muscle, self.foot)
         self.updateMuscles()
 
     def updateMuscles(self):
@@ -66,9 +70,10 @@ class Player(object):
         self.calf_muscle.rest_angle = (-self.stretch*2) * self.direction
 
     def reset(self):
+        self.head_body.position = 300+(50*self.direction),360
         self.thigh.position = 300+(50*self.direction),300
         self.calf.position = 300+(50*self.direction),300-LEG_LEN
-        for obj in (self.thigh, self.calf):
+        for obj in (self.thigh, self.calf, self.head_body):
             obj.angle = 0
             obj.velocity = (0,0)
             obj.angular_velocity = 0
@@ -190,10 +195,11 @@ def kill(player):
 
 def onCollision(space, arbiter):
     shapes = arbiter.shapes
-    if P1.head in shapes:
-        kill(P1)
-    elif P2.head in shapes:
-        kill(P2)
+    if GROUND.mat in shapes:
+        if P1.head in shapes:
+            kill(P1)
+        elif P2.head in shapes:
+            kill(P2)
     elif GROUND.ground in shapes:
         if P1.head in shapes or P1.foot in shapes:
             kill(P1)
@@ -273,6 +279,7 @@ def on_draw():
 def update(dt):
     for x in xrange(10):
         space.step(dt/10.0)
+        pass
 
 if __name__ == '__main__':
     import sys
