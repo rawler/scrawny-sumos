@@ -39,8 +39,9 @@ class Player(object):
     def _setup(self):
         direction = self.direction
 
-        self.head_body = pm.Body(1, 10000)
+        self.head_body = pm.Body(3, 10000)
         self.head = pm.Circle(self.head_body, 25, (0,0))
+        self.head.ignore_internal = True
 
         self.thigh = pm.Body(10, 10000)
         self.calf = pm.Body(10, 10000)
@@ -52,7 +53,7 @@ class Player(object):
 
         self.reset()
 
-        neck_joint = pm.PinJoint(self.shared_body, self.head_body, (50*direction,30), (0,-30))
+        neck_joint = pm.PinJoint(self.shared_body, self.head_body, (50*direction,30), (0,-25))
         hip_joint = pm.PinJoint(self.shared_body, self.thigh, (50*direction,0), (0,0))
         knee_joint = pm.PinJoint(self.thigh, self.calf, (0,-LEG_LEN), (0,0))
 
@@ -66,7 +67,7 @@ class Player(object):
         self.calf_muscle = pm.DampedRotarySpring(self.thigh, self.calf, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
 
         self.foot = pm.Circle(self.calf, 1, (0,-LEG_LEN))
-        self.foot.friction = 0.4
+        self.foot.friction = 0.5
         self.world.add(self.head_body, self.head, neck_joint, self.neck_muscle, self.thigh, self.calf, self.segments, hip_joint, self.buttock, knee_joint, self.knee, self.thigh_muscle, self.calf_muscle, self.foot)
         self.updateMuscles()
         self.revive()
@@ -89,7 +90,7 @@ class Player(object):
         self.dead = False
 
     def reset(self):
-        self.head_body.position = 300+(50*self.direction),360
+        self.head_body.position = 300+(50*self.direction),355
         self.thigh.position = 300+(50*self.direction),300
         self.calf.position = 300+(50*self.direction),300-LEG_LEN
         for obj in (self.thigh, self.calf, self.head_body):
@@ -142,10 +143,10 @@ class Ground(object):
         body.position = (300,40)
 
         self.ground = ground = pm.Segment(body, (-1000,0), (1000,0), 5.0)
-        ground.friction = 0.4
+        ground.friction = 0.5
         ground.color = (1.0, 1.0, 1.0)
         self.mat = mat = pm.Segment(body, (-200,5), (200,5), 5.0)
-        mat.friction = 0.4
+        mat.friction = 0.5
         mat.color = (1.0, 0.0, 0.0)
         space.add(ground, mat)
 
