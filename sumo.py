@@ -40,8 +40,10 @@ class Player(object):
         direction = self.direction
 
         self.head_body = pm.Body(3, 10000)
+        self.head_body.player = self
         self.head = pm.Circle(self.head_body, 25, (0,0))
         self.head.ignore_internal = True
+        self.head.player = self
 
         self.thigh = pm.Body(10, 10000)
         self.calf = pm.Body(10, 10000)
@@ -59,8 +61,10 @@ class Player(object):
 
         self.buttock = pm.Circle(self.thigh, 1, (0,0))
         self.buttock.ignore_internal = True
+        self.buttock.player = self
         self.knee = pm.Circle(self.calf, 1, (0,0))
         self.knee.ignore_internal = True
+        self.knee.player = self
 
         self.neck_muscle = pm.DampedRotarySpring(self.shared_body, self.head_body, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS/10)
         self.thigh_muscle = pm.DampedRotarySpring(self.shared_body, self.thigh, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
@@ -68,6 +72,7 @@ class Player(object):
 
         self.foot = pm.Circle(self.calf, 1, (0,-LEG_LEN))
         self.foot.friction = 0.5
+        self.foot.player = self
         self.world.add(self.head_body, self.head, neck_joint, self.neck_muscle, self.thigh, self.calf, self.segments, hip_joint, self.buttock, knee_joint, self.knee, self.thigh_muscle, self.calf_muscle, self.foot)
         self.updateMuscles()
         self.revive()
@@ -211,14 +216,15 @@ def kill(player):
     if player.dead:
         return
     if player is P1:
-        P2.score += 1
-        P2_SCORE_LABEL.text = str(P2.score)
+        other = P2
     else:
-        P1.score += 1
-        P1_SCORE_LABEL.text = str(P1.score)
+        other = P1
+    other.score += 1
+    other.score_label.text = str(other.score)
     player.die()
     print "Scores: Left %s, right %s" % (P1.score, P2.score)
-    pyglet.clock.schedule_once(reset, 1.5)
+    if not other.dead:
+        pyglet.clock.schedule_once(reset, 1.5)
 
 def onCollision(space, arbiter):
     shapes = arbiter.shapes
@@ -228,10 +234,9 @@ def onCollision(space, arbiter):
         elif P2.head in shapes:
             kill(P2)
     elif GROUND.ground in shapes:
-        if P1.head in shapes or P1.foot in shapes:
-            kill(P1)
-        elif P2.head in shapes or P2.foot in shapes:
-            kill(P2)
+        for s in shapes:
+            if hasattr(s,'player'):
+                kill(s.player)
     else:
         for shape in arbiter.shapes:
             if hasattr(shape, "ignore_internal"):
@@ -258,9 +263,9 @@ KEYS = {
 
 config = pyglet.gl.Config(alpha_size=8)
 window = pyglet.window.Window(config=config)
-P1_SCORE_LABEL = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
+P1.score_label = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
                                    x=5, y=window.height, anchor_y='top', anchor_x='left')
-P2_SCORE_LABEL = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
+P2.score_label = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
                                    x=window.width-5, y=window.height, anchor_y='top', anchor_x='right')
 
 GL.glShadeModel(GL.GL_SMOOTH);
@@ -311,8 +316,8 @@ def on_draw():
     P1.draw()
     P2.draw()
 
-    P1_SCORE_LABEL.draw()
-    P2_SCORE_LABEL.draw()
+    P1.score_label.draw()
+    P2.score_label.draw()
 
 def update(dt):
     for x in xrange(10):
