@@ -20,6 +20,7 @@ class Player(object):
         self.stretch = (math.pi/4)
         self.angle = 0
         self.score = 0
+        self.image = None
 
         self._setup()
 
