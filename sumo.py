@@ -212,8 +212,10 @@ def kill(player):
         return
     if player is P1:
         P2.score += 1
+        P2_SCORE_LABEL.text = str(P2.score)
     else:
         P1.score += 1
+        P1_SCORE_LABEL.text = str(P1.score)
     player.die()
     print "Scores: Left %s, right %s" % (P1.score, P2.score)
     pyglet.clock.schedule_once(reset, 1.5)
@@ -256,6 +258,10 @@ KEYS = {
 
 config = pyglet.gl.Config(alpha_size=8)
 window = pyglet.window.Window(config=config)
+P1_SCORE_LABEL = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
+                                   x=5, y=window.height, anchor_y='top', anchor_x='left')
+P2_SCORE_LABEL = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
+                                   x=window.width-5, y=window.height, anchor_y='top', anchor_x='right')
 
 GL.glShadeModel(GL.GL_SMOOTH);
 GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
@@ -304,6 +310,9 @@ def on_draw():
 
     P1.draw()
     P2.draw()
+
+    P1_SCORE_LABEL.draw()
+    P2_SCORE_LABEL.draw()
 
 def update(dt):
     for x in xrange(10):
