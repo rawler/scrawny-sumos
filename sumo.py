@@ -6,7 +6,7 @@ import pymunk as pm
 import math, sys, random
 
 LEG_LEN = 35
-MUSCLE_STRENGTH = 6000000
+MUSCLE_STRENGTH = 4000000
 MUSCLE_STIFFNESS = 20000
 
 GL = pyglet.gl
@@ -39,7 +39,7 @@ class Player(object):
     def _setup(self):
         direction = self.direction
 
-        self.head_body = pm.Body(2, 10000)
+        self.head_body = pm.Body(1, 10000)
         self.head = pm.Circle(self.head_body, 25, (0,0))
 
         self.thigh = pm.Body(10, 10000)
@@ -56,18 +56,37 @@ class Player(object):
         hip_joint = pm.PinJoint(self.shared_body, self.thigh, (50*direction,0), (0,0))
         knee_joint = pm.PinJoint(self.thigh, self.calf, (0,-LEG_LEN), (0,0))
 
+        self.buttock = pm.Circle(self.thigh, 1, (0,0))
+        self.buttock.ignore_internal = True
+        self.knee = pm.Circle(self.calf, 1, (0,0))
+        self.knee.ignore_internal = True
+
         self.neck_muscle = pm.DampedRotarySpring(self.shared_body, self.head_body, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS/10)
         self.thigh_muscle = pm.DampedRotarySpring(self.shared_body, self.thigh, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
         self.calf_muscle = pm.DampedRotarySpring(self.thigh, self.calf, 0, MUSCLE_STRENGTH, MUSCLE_STIFFNESS)
 
         self.foot = pm.Circle(self.calf, 1, (0,-LEG_LEN))
-        self.foot.friction = 0.6
-        self.world.add(self.head_body, self.head, neck_joint, self.neck_muscle, self.thigh, self.calf, self.segments, hip_joint, knee_joint, self.thigh_muscle, self.calf_muscle, self.foot)
+        self.foot.friction = 0.4
+        self.world.add(self.head_body, self.head, neck_joint, self.neck_muscle, self.thigh, self.calf, self.segments, hip_joint, self.buttock, knee_joint, self.knee, self.thigh_muscle, self.calf_muscle, self.foot)
         self.updateMuscles()
+        self.revive()
 
     def updateMuscles(self):
         self.thigh_muscle.rest_angle = (self.angle + self.stretch) * self.direction
         self.calf_muscle.rest_angle = (-self.stretch*2) * self.direction
+
+    def die(self):
+        self.dead = True
+        for m in (self.neck_muscle, self.thigh_muscle, self.calf_muscle):
+            m.stiffness = 0
+            m.damping = 0
+
+    def revive(self):
+        for m in (self.neck_muscle, self.thigh_muscle, self.calf_muscle):
+            m.stiffness = MUSCLE_STRENGTH
+            m.damping = MUSCLE_STIFFNESS
+        self.neck_muscle.damping = MUSCLE_STIFFNESS/20
+        self.dead = False
 
     def reset(self):
         self.head_body.position = 300+(50*self.direction),360
@@ -123,10 +142,10 @@ class Ground(object):
         body.position = (300,40)
 
         self.ground = ground = pm.Segment(body, (-1000,0), (1000,0), 5.0)
-        ground.friction = 0.6
+        ground.friction = 0.4
         ground.color = (1.0, 1.0, 1.0)
         self.mat = mat = pm.Segment(body, (-200,5), (200,5), 5.0)
-        mat.friction = 0.6
+        mat.friction = 0.4
         mat.color = (1.0, 0.0, 0.0)
         space.add(ground, mat)
 
@@ -176,22 +195,27 @@ body.position = 300,300
 P1 = Player(space, body, -1.0)
 P2 = Player(space, body, 1.0)
 
-def reset():
+def reset(_=None):
     body.position = (300,300)
     body.angle = 0
     body.velocity = (0,0)
     body.angular_velocity = 0
     body.reset_forces()
     P1.reset()
+    P1.revive()
     P2.reset()
+    P2.revive()
 
 def kill(player):
+    if player.dead:
+        return
     if player is P1:
         P2.score += 1
     else:
         P1.score += 1
+    player.die()
     print "Scores: Left %s, right %s" % (P1.score, P2.score)
-    reset()
+    pyglet.clock.schedule_once(reset, 1.5)
 
 def onCollision(space, arbiter):
     shapes = arbiter.shapes
@@ -205,6 +229,10 @@ def onCollision(space, arbiter):
             kill(P1)
         elif P2.head in shapes or P2.foot in shapes:
             kill(P2)
+    else:
+        for shape in arbiter.shapes:
+            if hasattr(shape, "ignore_internal"):
+                return False
 
     return True
 space.add_collision_handler(0, 0, onCollision, None, None, None) 
