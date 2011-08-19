@@ -297,8 +297,14 @@ def on_key_release(symbol, modifiers):
 def on_draw():
     window.clear()
 
+    GL.glMatrixMode(GL.GL_PROJECTION)
+    GL.glLoadIdentity()
+    GL.gluPerspective(60., window.width / float(window.height), .1, 1000.)
+    GL.glMatrixMode(GL.GL_MODELVIEW)
+
     GL.glPushMatrix()
-    GL.glTranslatef(300, 0, 0)
+    GL.glTranslatef(0, -210, -400)
+    #GL.glRotatef(45, 1, 1, 0)
 
     GL.glLineWidth(3)
     GROUND.draw()
@@ -323,6 +329,11 @@ def on_draw():
     P2.draw()
 
     GL.glPopMatrix()
+
+    GL.glMatrixMode(GL.GL_PROJECTION)
+    GL.glLoadIdentity()
+    GL.glOrtho(0, window.width, 0, window.height, 0, 1000.)
+    GL.glMatrixMode(GL.GL_MODELVIEW)
 
     P1.score_label.draw()
     P2.score_label.draw()
