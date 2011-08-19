@@ -302,9 +302,11 @@ def on_draw():
     GL.gluPerspective(60., window.width / float(window.height), .1, 1000.)
     GL.glMatrixMode(GL.GL_MODELVIEW)
 
+    global body
+    focusx, focusy = body.position
+
     GL.glPushMatrix()
-    GL.glTranslatef(0, -210, -400)
-    #GL.glRotatef(45, 1, 1, 0)
+    GL.gluLookAt(focusx/2,150,300, focusx, focusy, 0, 0,1,0)
 
     GL.glLineWidth(3)
     GROUND.draw()
