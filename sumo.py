@@ -105,7 +105,6 @@ class Player(object):
             obj.reset_forces()
 
     def draw(self):
-        GL.glColor3f(1.0, 1.0, 1.0)
         # Draw head
         head = self.head
         body = head.body
@@ -300,6 +299,8 @@ def on_draw():
     GL.glLineWidth(3)
     GROUND.draw()
 
+    # Draw shared body
+    GL.glColor3f(1.0, 1.0, 1.0)
     for line in lines:
         body = line.body
         GL.glPushMatrix()
@@ -313,6 +314,7 @@ def on_draw():
         GL.glEnd()
         GL.glPopMatrix()
 
+    # Draw individual features
     P1.draw()
     P2.draw()
 
