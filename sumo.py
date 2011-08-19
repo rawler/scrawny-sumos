@@ -95,9 +95,9 @@ class Player(object):
         self.dead = False
 
     def reset(self):
-        self.head_body.position = 300+(50*self.direction),355
-        self.thigh.position = 300+(50*self.direction),300
-        self.calf.position = 300+(50*self.direction),300-LEG_LEN
+        self.head_body.position = 50*self.direction,355
+        self.thigh.position = 50*self.direction,300
+        self.calf.position = 50*self.direction,300-LEG_LEN
         for obj in (self.thigh, self.calf, self.head_body):
             obj.angle = 0
             obj.velocity = (0,0)
@@ -144,7 +144,7 @@ class Player(object):
 class Ground(object):
     def __init__(self, space):
         self.body = body = pm.Body(pm.inf, pm.inf)
-        body.position = (300,40)
+        body.position = (0,40)
 
         self.ground = ground = pm.Segment(body, (-1000,0), (1000,0), 5.0)
         ground.friction = 0.5
@@ -195,13 +195,13 @@ lines = [pm.Segment(body, l_shoulder, l_hip, 5.0)
 ]
 
 space.add(body, lines)
-body.position = 300,300
+body.position = 0,300
 
 P1 = Player(space, body, -1.0)
 P2 = Player(space, body, 1.0)
 
 def reset(_=None):
-    body.position = (300,300)
+    body.position = (0,300)
     body.angle = 0
     body.velocity = (0,0)
     body.angular_velocity = 0
@@ -296,6 +296,10 @@ def on_key_release(symbol, modifiers):
 @window.event
 def on_draw():
     window.clear()
+
+    GL.glPushMatrix()
+    GL.glTranslatef(300, 0, 0)
+
     GL.glLineWidth(3)
     GROUND.draw()
 
@@ -317,6 +321,8 @@ def on_draw():
     # Draw individual features
     P1.draw()
     P2.draw()
+
+    GL.glPopMatrix()
 
     P1.score_label.draw()
     P2.score_label.draw()
