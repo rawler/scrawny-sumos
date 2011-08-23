@@ -340,20 +340,34 @@ def on_draw():
     P1.score_label.draw()
     P2.score_label.draw()
 
+    if window.fps_display:
+        window.fps_display.draw()
+
 def update(dt):
     for x in xrange(10):
         space.step(dt/10.0)
         pass
 
 if __name__ == '__main__':
-    import sys
+    from optparse import OptionParser
+    USAGE = "%s [options] [mugshot1] [mugshot2]"
+    parser = OptionParser(usage=USAGE)
+    parser.add_option("--fps", action="store_true",
+                      dest="show_fps", default=False,
+                      help="Show FPS-counter.")
+    (options, args) = parser.parse_args()
 
-    if len(sys.argv) == 2:
-        P1.setImage(sys.argv[1])
-        P2.setImage(sys.argv[1])
-    elif len(sys.argv) == 3:
-        P1.setImage(sys.argv[1])
-        P2.setImage(sys.argv[2])
+    if len(args) == 1:
+        P1.setImage(args[0])
+        P2.setImage(args[0])
+    elif len(args) == 2:
+        P1.setImage(args[0])
+        P2.setImage(args[1])
+
+    if options.show_fps:
+        window.fps_display = pyglet.clock.ClockDisplay()
+    else:
+        window.fps_display = None
 
     pyglet.clock.schedule_interval(update, 1/60.0) # update at 60Hz
     pyglet.app.run()
