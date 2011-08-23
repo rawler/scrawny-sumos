@@ -1,0 +1,11 @@
+Silly little Pyglet/Pymunk-based game about two underfed sumo-wrestlers dueling it out.
+
+The game is intended for two players, or schizophrenics.
+
+Features:
+ - Real (simulated) Physics
+ - Awesome 3-color graphics.
+ - 3-dimensional 2d. (Yeah, hardcore stuff)
+ - Multiplayer.
+
+The game is heavily inspired on an old game, name forgotten. If you recognise it, do tell.
