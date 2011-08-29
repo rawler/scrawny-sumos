@@ -119,8 +119,8 @@ class Player(object):
         GL.glBegin(GL.GL_TRIANGLE_FAN)
         radius = head.radius
         GL.glVertex2f(0,0)
-        for i in xrange(17):
-            rad = ((i+1)/8.0)*math.pi
+        for i in xrange(25):
+            rad = ((i+1)/12.0)*math.pi
             GL.glVertex2f(math.cos(rad)*radius,math.sin(rad)*radius);
         GL.glEnd()
         if self.image:
@@ -261,7 +261,7 @@ KEYS = {
 }
 
 config = pyglet.gl.Config(alpha_size=8)
-window = pyglet.window.Window(config=config)
+window = pyglet.window.Window(config=config, resizable=True)
 P1.score_label = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
                                    x=5, y=window.height, anchor_y='top', anchor_x='left')
 P2.score_label = pyglet.text.Label('0', font_name='Verdana', font_size=36, color=(255,255,255,255),
@@ -292,6 +292,13 @@ def on_key_release(symbol, modifiers):
         player.stretch -= stretch
         player.angle -= angle
         player.updateMuscles()
+
+@window.event
+def on_resize(width, height):
+    P1.score_label.x = 0
+    P1.score_label.y = height
+    P2.score_label.x = width
+    P2.score_label.y = height
 
 @window.event
 def on_draw():
