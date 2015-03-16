@@ -1,0 +1,1 @@
+Scrawny Sumos is a smallish Python Game with stick-figure sumo wrestling. It's based on a decades-old game whose name I've forgotten. (If you recognize it, please tell.)
